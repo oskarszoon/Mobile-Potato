@@ -1,13 +1,17 @@
 package com.oskarsson.mobilepotato;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,29 +20,26 @@ import android.view.View.OnKeyListener;
 import android.widget.EditText;
 
 public class MainActivity extends Activity implements OnSharedPreferenceChangeListener {
-	
-	private String debugTag = "MP_Main";
 
-	private static final int MENU_SETTINGS = 0;
+	private String debugTag = "MP_Main";
 	private String settingHost = "";
 	private String settingPort = "";
 	private String settingUsername = "";
 	private String settingPassword = "";
 	private Boolean settingUseHTTPS = false;
-	
-	public static String defaultHost = "127.0.0.1";
-	public static String defaultPort = "5000";
+	public static String defaultHost = "";
+	public static String defaultPort = "";
 	public static String defaultUsername = "";
 	public static String defaultPassword = "";
 	public static Boolean defaultUseHTTPS = false;
-	
+
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		// TODO: check for IMDB app
 		// TODO: check for configuration set
-		
+
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
@@ -68,11 +69,14 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 			}
 		});
 	}
+	private static final int MENU_SETTINGS = 0;
+	private static final int MENU_ABOUT = 1;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		menu.add(0, MENU_SETTINGS, 0, "Preferences").setIcon(android.R.drawable.ic_menu_preferences);
+		menu.add(0, MENU_ABOUT, 0, "About").setIcon(android.R.drawable.ic_menu_info_details);
 		return true;
 	}
 
@@ -82,7 +86,10 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		switch (item.getItemId()) {
 			case MENU_SETTINGS:
 				startActivity(new Intent(this, PreferencesActivity.class));
-				return true;
+				break;
+			case MENU_ABOUT:
+				showDialog(DIALOG_ABOUT);
+				break;
 		}
 		return true;
 	}
@@ -102,5 +109,31 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		settingUsername = sp.getString("Username", defaultUsername);
 		settingPassword = sp.getString("Password", defaultPassword);
 		settingUseHTTPS = sp.getBoolean("HTTPS", defaultUseHTTPS);
+	}
+	static final int DIALOG_ABOUT = 0;
+
+	@Override
+	protected Dialog onCreateDialog(int id)
+	{
+		Dialog dialog = null;
+		switch (id) {
+			case DIALOG_ABOUT:
+				createAboutDialog();
+				break;
+			default:
+				dialog = null;
+		}
+		return dialog;
+	}
+
+	private void createAboutDialog()
+	{
+		AlertDialog builder;
+		try {
+			builder = AboutDialog.create(this);
+			builder.show();
+		} catch (NameNotFoundException e) {
+			Log.e(debugTag, "Exception: " + e.toString());
+		}
 	}
 }
