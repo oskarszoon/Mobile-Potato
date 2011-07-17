@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Mobile Potato</string>
+	<string name="explanation">Search using IMDb app</string>
+	<string name="imdb_note">Use IMDb\'s built in \"Share this link\" functionality to add movies to CouchPotato</string>
+</resources>

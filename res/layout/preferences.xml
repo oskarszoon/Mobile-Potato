@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+	<PreferenceCategory android:title="CouchPotato Server Information">
+		<EditTextPreference android:key="Host" android:title="Hostname or IP Address" android:defaultValue="127.0.0.1" />
+		<EditTextPreference android:key="Port" android:title="Port" android:defaultValue="5000" />
+		<EditTextPreference android:key="Username" android:title="Username" android:defaultValue="" />
+		<EditTextPreference android:key="Password" android:inputType="textPassword" android:title="Password" android:defaultValue="" />
+		<CheckBoxPreference android:key="HTTPS" android:title="Use HTTPS" android:defaultValue="false" />
+	</PreferenceCategory>
+</PreferenceScreen>
