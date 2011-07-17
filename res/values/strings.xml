@@ -3,9 +3,6 @@
 	<string name="app_name">Mobile Potato</string>
 	<string name="explanation">Search using IMDb app</string>
 	<string name="imdb_note">Use IMDb\'s built in \"Share this link\" functionality to add movies to CouchPotato</string>
-	<string name="about">Mobile Potato is a companion app for CouchPotato, you will need a working CouchPotato setup and the IMDb app to be able to use this app.\n\n
-Please visit https://github.com/RuudBurger/CouchPotato#readme for more information on CouchPotato.\n\n
-Any feedback or suggestions?\n
-E-mail: mobilepotato@oskarsson.nl</string>
+	<string name="about">Mobile Potato is a companion app for CouchPotato, you will need a working CouchPotato setup and the IMDb app to be able to use this app.\n\nPlease visit https://github.com/RuudBurger/CouchPotato#readme for more information on CouchPotato.\n\nAny feedback or suggestions?\nE-mail: mobilepotato@oskarsson.nl</string>
 	<string name="quality_error">Please check your connection settings</string>
 </resources>

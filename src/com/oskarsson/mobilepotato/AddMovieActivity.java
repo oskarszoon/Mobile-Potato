@@ -36,7 +36,6 @@ public class AddMovieActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		// TODO: something still shows up, not fully invisible
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.add_movie);
 
