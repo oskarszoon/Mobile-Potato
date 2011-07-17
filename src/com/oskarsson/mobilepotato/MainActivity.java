@@ -121,7 +121,7 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		Dialog dialog = null;
 		switch (id) {
 			case DIALOG_ABOUT:
-				createAboutDialog();
+				dialog = createAboutDialog();
 				break;
 			default:
 				dialog = null;
@@ -129,14 +129,16 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		return dialog;
 	}
 
-	private void createAboutDialog()
+	private AlertDialog createAboutDialog()
 	{
-		AlertDialog builder;
+		AlertDialog dialog = null;
 		try {
-			builder = AboutDialog.create(this);
-			builder.show();
+			dialog = AboutDialog.create(this);
+			dialog.show();
 		} catch (NameNotFoundException e) {
 			Log.e(debugTag, "Exception: " + e.toString());
 		}
+		
+		return dialog;
 	}
 }
