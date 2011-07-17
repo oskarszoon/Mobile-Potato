@@ -5,6 +5,13 @@
 		<EditTextPreference android:key="Port" android:title="Port" android:defaultValue="5000" />
 		<EditTextPreference android:key="Username" android:title="Username" android:defaultValue="" />
 		<EditTextPreference android:key="Password" android:inputType="textPassword" android:title="Password" android:defaultValue="" />
-		<CheckBoxPreference android:key="HTTPS" android:title="Use HTTPS" android:defaultValue="false" />
+		<CheckBoxPreference android:key="UseHTTPS" android:title="Use HTTPS" android:defaultValue="false" />
+	</PreferenceCategory>
+	<PreferenceCategory android:title="CouchPotato Preferences">
+		<ListPreference
+			android:id="@+id/preference_quality"
+			android:key="Quality"
+			android:title="Default quality"
+			android:defaultValue="0" />
 	</PreferenceCategory>
 </PreferenceScreen>

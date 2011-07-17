@@ -5,6 +5,7 @@
 package com.oskarsson.mobilepotato;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -13,27 +14,10 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
-import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScheme;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.AuthState;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.ExecutionContext;
-import org.apache.http.protocol.HttpContext;
 
 /**
  *
@@ -47,13 +31,14 @@ public class AddMovieActivity extends Activity {
 	private String settingUsername = "";
 	private String settingPassword = "";
 	private Boolean settingUseHTTPS = false;
+	private String settingQuality = "";
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		// TODO: something still shows up, not fully invisible
 		super.onCreate(savedInstanceState);
-		setVisible(false);
+		setContentView(R.layout.add_movie);
 
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
@@ -66,17 +51,16 @@ public class AddMovieActivity extends Activity {
 			settingPort = sp.getString("Port", MainActivity.defaultPort);
 			settingUsername = sp.getString("Username", MainActivity.defaultUsername);
 			settingPassword = sp.getString("Password", MainActivity.defaultPassword);
-			settingUseHTTPS = sp.getBoolean("HTTPS", MainActivity.defaultUseHTTPS);
+			settingUseHTTPS = sp.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
+			settingQuality = sp.getString("Quality", "");
 
 			String fullText = (String) extras.get(Intent.EXTRA_TEXT);
 			Log.d(debugTag, fullText);
 			String[] IMDbDetails = getIMDbDetails(fullText);
 
-			AddMovieToCP task = new AddMovieToCP();
+			AddMovieToCPTask task = new AddMovieToCPTask(this);
 			task.execute(IMDbDetails);
 		}
-
-		finish();
 	}
 
 	public String[] getIMDbDetails(String fullText)
@@ -94,7 +78,23 @@ public class AddMovieActivity extends Activity {
 		return IMDbDetails;
 	}
 
-	private class AddMovieToCP extends AsyncTask<String, Void, String> {
+	private class AddMovieToCPTask extends AsyncTask<String, Void, String> {
+
+		private ProgressDialog dialog;
+		private AddMovieActivity activity;
+
+		public AddMovieToCPTask(AddMovieActivity addMovieActivity)
+		{
+			activity = addMovieActivity;
+			dialog = new ProgressDialog(activity);
+		}
+
+		@Override
+		protected void onPreExecute()
+		{
+			this.dialog.setMessage("Adding movie to CouchPotato");
+			this.dialog.show();
+		}
 
 		@Override
 		protected String doInBackground(String[] IMDbDetails)
@@ -104,45 +104,24 @@ public class AddMovieActivity extends Activity {
 			String jobResponse = "Something went wrong, sorry :(";
 
 			if (IMDbDetails[0].length() > 0 && IMDbDetails[1].length() > 0) {
-				DefaultHttpClient httpclient = new DefaultHttpClient();
+				DefaultHttpClient httpClient = new DefaultHttpClient();
 
 				try {
-					httpclient.getCredentialsProvider().setCredentials(
-									new AuthScope(settingHost, Integer.parseInt(settingPort)),
-									new UsernamePasswordCredentials(settingUsername, settingPassword));
-					BasicHttpContext localcontext = new BasicHttpContext();
-					localcontext.setAttribute("preemptive-auth", new BasicScheme());
-					httpclient.addRequestInterceptor(new PreemptiveAuth(), 0);
-
-					HttpHost targetHost = new HttpHost(settingHost, Integer.parseInt(settingPort), "http" + (settingUseHTTPS ? "s" : ""));
 					//http://192.168.0.113:8083/movie/imdbAdd/?id=tt0068646&add=Add&quality=12
-					HttpGet httpGet = new HttpGet("/movie/imdbAdd/?id=" + IMDbDetails[1] + "&add=Add&quality=12");
+					String path = "/movie/imdbAdd/?id=" + IMDbDetails[1] + "&add=Add&quality=" + settingQuality;
+					HttpResponse httpResponse = HTTPClientHelpers.getResponse(settingHost, Integer.parseInt(settingPort), path, settingUseHTTPS, settingUsername, settingPassword, httpClient);
+					int responseCode = HTTPClientHelpers.getResponseCode(httpResponse);
+					//String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
 
-					HttpResponse response = httpclient.execute(targetHost, httpGet, localcontext);
-					int responseCode = response.getStatusLine().getStatusCode();
-					
 					if (responseCode == 200) {
 						jobResponse = "Added " + IMDbDetails[0] + " to CouchPotato";
 					} else {
 						Log.e(debugTag, "responseCode: " + responseCode);
 					}
 
-					/* Retrieve the response, in case of debugging
-					HttpEntity entity = response.getEntity();
-					InputStream inputStream = entity.getContent();
-					// Read response into a buffered stream
-					ByteArrayOutputStream content = new ByteArrayOutputStream();
-					int readBytes = 0;
-					byte[] sBuffer = new byte[512];
-					while ((readBytes = inputStream.read(sBuffer)) != -1) {
-						content.write(sBuffer, 0, readBytes);
-					}
-					// Return result from buffered stream
-					String dataAsString = new String(content.toByteArray());*/
-
-					httpclient.getConnectionManager().shutdown();
+					httpClient.getConnectionManager().shutdown();
 				} catch (Exception e) {
-					httpclient.getConnectionManager().shutdown();
+					httpClient.getConnectionManager().shutdown();
 					Log.e(debugTag, "Exception: " + e.toString());
 				}
 			} else {
@@ -153,42 +132,13 @@ public class AddMovieActivity extends Activity {
 			return jobResponse;
 		}
 
-		public class PreemptiveAuth implements HttpRequestInterceptor {
-
-			public void process(
-							final HttpRequest request,
-							final HttpContext context) throws HttpException, IOException
-			{
-
-				AuthState authState = (AuthState) context.getAttribute(
-								ClientContext.TARGET_AUTH_STATE);
-
-				// If no auth scheme avaialble yet, try to initialize it preemptively
-				if (authState.getAuthScheme() == null) {
-					AuthScheme authScheme = (AuthScheme) context.getAttribute(
-									"preemptive-auth");
-					CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
-									ClientContext.CREDS_PROVIDER);
-					HttpHost targetHost = (HttpHost) context.getAttribute(
-									ExecutionContext.HTTP_TARGET_HOST);
-					if (authScheme != null) {
-						Credentials creds = credsProvider.getCredentials(
-										new AuthScope(
-										targetHost.getHostName(),
-										targetHost.getPort()));
-						if (creds == null) {
-							throw new HttpException("No credentials for preemptive authentication");
-						}
-						authState.setAuthScheme(authScheme);
-						authState.setCredentials(creds);
-					}
-				}
-			}
-		}
-
 		@Override
 		protected void onPostExecute(String result)
 		{
+			if (this.dialog.isShowing()) {
+				this.dialog.dismiss();
+			}
+			activity.finish();
 			Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_LONG);
 			toast.setGravity(Gravity.CENTER, 0, 0);
 			toast.show();

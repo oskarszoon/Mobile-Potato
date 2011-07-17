@@ -7,7 +7,7 @@
 	<uses-sdk android:minSdkVersion="8" />
 	<uses-permission android:name="android.permission.INTERNET" /> 
 
-	<application android:icon="@drawable/icon" android:label="@string/app_name" android:theme="@style/MobilePotatoTheme">
+	<application android:icon="@drawable/icon" android:label="@string/app_name">
 		<activity android:name=".MainActivity" android:label="@string/app_name">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
@@ -15,7 +15,7 @@
 			</intent-filter>
 		</activity>
 		
-		<activity android:name=".AddMovieActivity" android:label="CouchPotato">
+		<activity android:name=".AddMovieActivity" android:label="CouchPotato" android:theme="@style/Theme.Transparent">
 			<intent-filter>
 				<action android:name="android.intent.action.SEND" />
 				<category android:name="android.intent.category.DEFAULT" />

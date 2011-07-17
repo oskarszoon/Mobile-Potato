@@ -7,4 +7,5 @@
 Please visit https://github.com/RuudBurger/CouchPotato#readme for more information on CouchPotato.\n\n
 Any feedback or suggestions?\n
 E-mail: mobilepotato@oskarsson.nl</string>
+	<string name="quality_error">Please check your connection settings</string>
 </resources>

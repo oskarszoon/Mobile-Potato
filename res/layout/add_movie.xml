@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<AbsoluteLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical" android:layout_width="fill_parent"
-	android:layout_height="fill_parent"
+	android:orientation="vertical"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
 	android:windowIsTranslucent="true"
+	android:windowBackground="@android:color/transparent"
+	android:background="@android:color/transparent"
+	android:windowIsFloating="true"
+	android:windowNoTitle="true"
 	>
-</LinearLayout>
+</AbsoluteLayout>

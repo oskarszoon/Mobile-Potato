@@ -18,6 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.widget.EditText;
+import java.util.HashMap;
 
 public class MainActivity extends Activity implements OnSharedPreferenceChangeListener {
 
@@ -29,16 +30,18 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 	private Boolean settingUseHTTPS = false;
 	public static String defaultHost = "";
 	public static String defaultPort = "";
+	public static Boolean defaultUseHTTPS = false;
 	public static String defaultUsername = "";
 	public static String defaultPassword = "";
-	public static Boolean defaultUseHTTPS = false;
+	public static HashMap settingQualities;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		// TODO: check for IMDB app
-		// TODO: check for configuration set
+		// TODO: check for configuration set, forward to preferences
+		// TODO: test for 2.1 and other devices
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
@@ -50,7 +53,7 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		settingPort = sp.getString("Port", defaultPort);
 		settingUsername = sp.getString("Username", defaultUsername);
 		settingPassword = sp.getString("Password", defaultPassword);
-		settingUseHTTPS = sp.getBoolean("HTTPS", defaultUseHTTPS);
+		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
 
 		final EditText searchInput = (EditText) findViewById(R.id.search_input);
 		searchInput.setOnKeyListener(new OnKeyListener() {
@@ -108,7 +111,7 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		settingPort = sp.getString("Port", defaultPort);
 		settingUsername = sp.getString("Username", defaultUsername);
 		settingPassword = sp.getString("Password", defaultPassword);
-		settingUseHTTPS = sp.getBoolean("HTTPS", defaultUseHTTPS);
+		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
 	}
 	static final int DIALOG_ABOUT = 0;
 
