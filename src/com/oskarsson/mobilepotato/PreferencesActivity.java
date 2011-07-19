@@ -2,34 +2,34 @@ package com.oskarsson.mobilepotato;
 
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import android.view.Gravity;
-import android.widget.Toast;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.http.HttpResponse;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class PreferencesActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener {
 
 	private String debugTag = "MP_Preferences";
-	private String settingHost = "";
-	private String settingPort = "";
-	private String settingUsername = "";
-	private String settingPassword = "";
-	private Boolean settingUseHTTPS = false;
-	private JSONObject settingQualities;
-	private ListPreference qualityListPreference;
-	private SharedPreferences sharedPreferences;
+	public String settingHost = "";
+	public String settingPort = "";
+	public String settingUsername = "";
+	public String settingPassword = "";
+	public Boolean settingUseHTTPS = false;
+	public Boolean settingConnected = false;
+	public JSONObject settingQualities;
+	public ListPreference qualityListPreference;
+	public SharedPreferences sharedPreferences;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -38,6 +38,16 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 		addPreferencesFromResource(R.layout.preferences);
 
 		sharedPreferences = getPreferenceScreen().getSharedPreferences();
+		qualityListPreference = (ListPreference) findPreference("Quality");
+		
+		// Populate defaults
+		setServerSettings();
+		try {
+			settingQualities = new JSONObject(sharedPreferences.getString("Qualities", ""));
+		} catch (JSONException ex) {
+			settingQualities = new JSONObject();
+		}
+		setConnected(settingConnected);
 
 		Preference p;
 		String[] textPreferences = {"Host", "Port", "Username", "Password"};
@@ -57,10 +67,16 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 			autostart.setSummary("Off");
 		}
 
-		// TODO: do something if the list is already populated
-		qualityListPreference = (ListPreference) findPreference("Quality");
-		qualityListPreference.setEnabled(false);
-		qualityListPreference.setSummary(this.getString(R.string.quality_error));
+		p = (Preference) findPreference("Connect");
+		p.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+
+			public boolean onPreferenceClick(Preference preference)
+			{
+				GetQualitiesTask task = new GetQualitiesTask(PreferencesActivity.this);
+				task.execute();
+				return true;
+			}
+		});
 	}
 
 	@Override
@@ -95,99 +111,48 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 				preference.setSummary("Off");
 			}
 		} else if (key.equals("Quality")) {
-			// TODO: retrieve the Name
-			preference.setSummary(sp.getString("Quality", ""));
+			setConnected(true);
 		}
 
-		settingHost = sp.getString("Host", MainActivity.defaultHost);
-		settingPort = sp.getString("Port", MainActivity.defaultPort);
-		settingUsername = sp.getString("Username", MainActivity.defaultUsername);
-		settingPassword = sp.getString("Password", MainActivity.defaultPassword);
-		settingUseHTTPS = sp.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
-		//String debugString = settingHost + "\n" + settingPort + "\n" + (settingUseHTTPS ? "on" : "off") + "\n" + settingUsername + "\n" + settingPassword;
-
-		if (!key.equals("Quality")) {
-			GetQualitiesTask task = new GetQualitiesTask(this);
-			task.execute();
-		}
+		setServerSettings();
 	}
 
-	private class GetQualitiesTask extends AsyncTask<Void, Void, String> {
+	public void setServerSettings()
+	{
+		settingHost = sharedPreferences.getString("Host", MainActivity.defaultHost);
+		settingPort = sharedPreferences.getString("Port", MainActivity.defaultPort);
+		settingUsername = sharedPreferences.getString("Username", MainActivity.defaultUsername);
+		settingPassword = sharedPreferences.getString("Password", MainActivity.defaultPassword);
+		settingConnected = sharedPreferences.getBoolean("Connected", false);
+		settingUseHTTPS = sharedPreferences.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
+		//String debugString = settingHost + "\n" + settingPort + "\n" + (settingUseHTTPS ? "on" : "off") + "\n" + settingUsername + "\n" + settingPassword;
+	}
 
-		private PreferencesActivity activity;
-
-		public GetQualitiesTask(PreferencesActivity activity)
-		{
-			this.activity = activity;
-		}
-
-		@Override
-		protected String doInBackground(Void... params)
-		{
-			int responseCode = 500;
-			if (settingHost.length() > 0 && settingPort.length() > 0) {
-				DefaultHttpClient httpClient = new DefaultHttpClient();
-				try {
-					HttpResponse httpResponse = HTTPClientHelpers.getResponse(settingHost, Integer.parseInt(settingPort), "/movie/imdbAdd/?id=1", settingUseHTTPS, settingUsername, settingPassword, httpClient);
-					responseCode = HTTPClientHelpers.getResponseCode(httpResponse);
-					String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
-
-					settingQualities = getQualities(responseText);
-					httpClient.getConnectionManager().shutdown();
-				} catch (Exception e) {
-					httpClient.getConnectionManager().shutdown();
-					Log.e(debugTag, "Exception: " + e.toString());
+	public void setConnected(Boolean connected)
+	{
+		SharedPreferences.Editor editor = sharedPreferences.edit();
+		
+		String quality = sharedPreferences.getString("Quality", "");
+		String qualitySummary = "";
+		if (connected) {
+			editor.putString("Qualities", settingQualities.toString());
+			
+			try {
+				if (quality.equals("")) {
+					JSONArray qualityIDs = settingQualities.names();
+					// TODO: better default quality
+					quality = qualityIDs.getString(0);
 				}
+				qualitySummary = settingQualities.getString(quality);
+			} catch (JSONException e) {
+				Log.e(debugTag, "Unable to find key " + quality + " in JSON Object: " + e.toString());
 			}
-
-			return Integer.toString(responseCode);
 		}
-
-		@Override
-		protected void onPostExecute(String responseCode)
-		{
-			Log.d(debugTag, "Post execute");
-
-			String responseText = "";
-			if (responseCode.equals("200")) {
-				responseText = "Connected to CouchPotato";
-
-				String[] entryNames = {"Choose when adding"};
-				String[] entryValues = {"0"};
-				try {
-					JSONArray qualityKeys = settingQualities.names();
-
-					entryNames = new String[qualityKeys.length() + 1];
-					entryValues = new String[qualityKeys.length() + 1];
-
-					entryNames[0] = "Choose when adding";
-					entryValues[0] = "0";
-					for (int i = 0; i < qualityKeys.length(); i++) {
-						entryNames[i + 1] = settingQualities.getString(qualityKeys.getString(i));
-						entryValues[i + 1] = qualityKeys.getString(i);
-					}
-				} catch (Exception e) {
-					// do nothing
-				}
-				activity.qualityListPreference.setEntries(entryNames);
-				activity.qualityListPreference.setEntryValues(entryValues);
-				// TODO: retrieve name
-				activity.qualityListPreference.setSummary(sharedPreferences.getString("Quality", ""));
-				activity.qualityListPreference.setEnabled(true);
-			} else if (responseCode.equals("401")) {
-				if (settingUsername.length() > 0 && settingPassword.length() > 0) {
-					responseText = "Unauthorized, check your credentials";
-				} else {
-					responseText = "Unauthorized, please fill in your credentials";
-				}
-			} else {
-				responseText = "Unable to connect to CouchPotato";
-			}
-
-			Toast toast = Toast.makeText(this.activity.getApplicationContext(), responseText, Toast.LENGTH_SHORT);
-			toast.setGravity(Gravity.CENTER, 0, 0);
-			toast.show();
-		}
+		qualityListPreference.setSummary(qualitySummary);
+		qualityListPreference.setEnabled(connected);
+		
+		editor.putBoolean("Connected", connected);
+		editor.commit();
 	}
 
 	public static JSONObject getQualities(String responseText)

@@ -1,13 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 	<PreferenceCategory android:title="CouchPotato Server Information">
-		<EditTextPreference android:key="Host" android:title="Hostname or IP Address" android:defaultValue="127.0.0.1" />
-		<EditTextPreference android:key="Port" android:title="Port" android:defaultValue="5000" />
-		<EditTextPreference android:key="Username" android:title="Username" android:defaultValue="" />
-		<EditTextPreference android:key="Password" android:inputType="textPassword" android:title="Password" android:defaultValue="" />
+		<EditTextPreference
+			android:key="Host"
+			android:title="Hostname or IP Address"
+			android:defaultValue="127.0.0.1"
+			android:inputType="textUri"
+			/>
+		<EditTextPreference
+			android:key="Port"
+			android:title="Port"
+			android:defaultValue="5000"
+			android:inputType="numberSigned"
+			/>
+		<EditTextPreference
+			android:key="Username"
+			android:title="Username"
+			android:defaultValue=""
+			android:inputType="textNoSuggestions"
+			/>
+		<EditTextPreference
+			android:key="Password"
+			android:title="Password"
+			android:defaultValue=""
+			android:inputType="textPassword"
+			/>
 		<CheckBoxPreference android:key="UseHTTPS" android:title="Use HTTPS" android:defaultValue="false" />
 	</PreferenceCategory>
 	<PreferenceCategory android:title="CouchPotato Preferences">
+		<Preference
+			android:id="@+id/preference_connect"
+			android:key="Connect"
+			android:title="Connect to CouchPotato"
+			android:summary="Needed to retrieve qualities"
+			/>
 		<ListPreference
 			android:id="@+id/preference_quality"
 			android:key="Quality"

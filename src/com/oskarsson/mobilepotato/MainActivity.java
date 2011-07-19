@@ -18,6 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.widget.EditText;
+import com.google.android.apps.analytics.GoogleAnalyticsTracker;
 import java.util.HashMap;
 
 public class MainActivity extends Activity implements OnSharedPreferenceChangeListener {
@@ -34,17 +35,26 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 	public static String defaultUsername = "";
 	public static String defaultPassword = "";
 	public static HashMap settingQualities;
+	GoogleAnalyticsTracker tracker;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		// TODO: check for IMDB app
-		// TODO: check for configuration set, forward to preferences
-		// TODO: test for 2.1 and other devices
+		// TODO: test for other devices
+		// TODO: handle orientation change in preferences screen
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
+		// TODO: better google analytics tracking, see http://code.google.com/mobile/analytics/docs/android/ (UA-24637776-1)
+		tracker = GoogleAnalyticsTracker.getInstance();
+		tracker.start("UA-24637776-1", getApplication());
+		tracker.trackPageView("/Main");
+		tracker.dispatch();
+		// Try to load the a package matching the name of our own package
+		//PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), PackageManager.GET_META_DATA);
+		//tracker.setCustomVar(1, "Version", pInfo.versionName, 2);
 
 		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
 		sp.registerOnSharedPreferenceChangeListener(this);
@@ -56,24 +66,34 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
 
 		final EditText searchInput = (EditText) findViewById(R.id.search_input);
-		searchInput.setOnKeyListener(new OnKeyListener() {
+		try {
+			// Check for IMDb existance
+			getPackageManager().getApplicationInfo("com.imdb.mobile", 0);
 
-			public boolean onKey(View v, int keyCode, KeyEvent event)
-			{
-				// If the event is a key-down event on the "enter" button
-				if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
-					Intent imdbIntent = new Intent();
-					imdbIntent.setAction(Intent.ACTION_VIEW);
-					imdbIntent.setData(Uri.parse("imdb:///find?q=" + searchInput.getText()));
-					startActivity(imdbIntent);
-					return true;
+			searchInput.setOnKeyListener(new OnKeyListener() {
+
+				public boolean onKey(View v, int keyCode, KeyEvent event)
+				{
+					// If the event is a key-down event on the "enter" button
+					if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+						Intent imdbIntent = new Intent();
+						imdbIntent.setAction(Intent.ACTION_VIEW);
+						imdbIntent.setData(Uri.parse("imdb:///find?q=" + searchInput.getText()));
+						startActivity(imdbIntent);
+						return true;
+					}
+					return false;
 				}
-				return false;
-			}
-		});
+			});
+		} catch (NameNotFoundException e) {
+			Log.e(debugTag, "IMDb app not found: " + e.toString());
+			searchInput.setHint("Please install the IMDb app");
+			searchInput.setEnabled(false);
+		}
 	}
-	private static final int MENU_SETTINGS = 0;
-	private static final int MENU_ABOUT = 1;
+	
+	private static final int MENU_SETTINGS = 1;
+	private static final int MENU_ABOUT = 2;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -113,7 +133,7 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		settingPassword = sp.getString("Password", defaultPassword);
 		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
 	}
-	static final int DIALOG_ABOUT = 0;
+	static final int DIALOG_ABOUT = 1;
 
 	@Override
 	protected Dialog onCreateDialog(int id)
@@ -138,7 +158,14 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 		} catch (NameNotFoundException e) {
 			Log.e(debugTag, "Exception: " + e.toString());
 		}
-		
+
 		return dialog;
+	}
+
+	@Override
+	protected void onDestroy()
+	{
+		super.onDestroy();
+		tracker.stop();
 	}
 }

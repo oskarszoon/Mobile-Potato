@@ -14,6 +14,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
+import com.google.android.apps.analytics.GoogleAnalyticsTracker;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.HttpResponse;
@@ -31,6 +32,7 @@ public class AddMovieActivity extends Activity {
 	private String settingUsername = "";
 	private String settingPassword = "";
 	private Boolean settingUseHTTPS = false;
+	private Boolean settingConnected = false;
 	private String settingQuality = "";
 
 	@Override
@@ -52,13 +54,21 @@ public class AddMovieActivity extends Activity {
 			settingPassword = sp.getString("Password", MainActivity.defaultPassword);
 			settingUseHTTPS = sp.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
 			settingQuality = sp.getString("Quality", "");
+			settingConnected = sp.getBoolean("Connected", false);
+			
+			if (settingConnected) {
+				String fullText = (String) extras.get(Intent.EXTRA_TEXT);
+				Log.d(debugTag, fullText);
+				String[] IMDbDetails = getIMDbDetails(fullText);
 
-			String fullText = (String) extras.get(Intent.EXTRA_TEXT);
-			Log.d(debugTag, fullText);
-			String[] IMDbDetails = getIMDbDetails(fullText);
-
-			AddMovieToCPTask task = new AddMovieToCPTask(this);
-			task.execute(IMDbDetails);
+				AddMovieToCPTask task = new AddMovieToCPTask(this);
+				task.execute(IMDbDetails);
+			} else {
+				Toast toast = Toast.makeText(this, "Unable to add movie: not connected to CouchPotato", Toast.LENGTH_LONG);
+				toast.setGravity(Gravity.CENTER, 0, 0);
+				toast.show();
+				finish();
+			}
 		}
 	}
 
@@ -100,7 +110,7 @@ public class AddMovieActivity extends Activity {
 		{
 			Log.i(debugTag, "Doing background add for " + IMDbDetails[0]);
 
-			String jobResponse = "Something went wrong, sorry :(";
+			String jobResponse = "Unable to add movie: unable to connect to CouchPotato";
 
 			if (IMDbDetails[0].length() > 0 && IMDbDetails[1].length() > 0) {
 				DefaultHttpClient httpClient = new DefaultHttpClient();
@@ -113,6 +123,12 @@ public class AddMovieActivity extends Activity {
 					//String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
 
 					if (responseCode == 200) {
+						// TODO: group analytics calls
+						GoogleAnalyticsTracker tracker = GoogleAnalyticsTracker.getInstance();
+						tracker.start("UA-24637776-1", getApplication());
+						tracker.trackPageView("/AddMovie/" + IMDbDetails[0]);
+						tracker.dispatch();
+						tracker.stop();
 						jobResponse = "Added " + IMDbDetails[0] + " to CouchPotato";
 					} else {
 						Log.e(debugTag, "responseCode: " + responseCode);
