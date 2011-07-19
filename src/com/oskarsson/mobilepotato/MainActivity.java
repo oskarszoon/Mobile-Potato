@@ -41,7 +41,6 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		// TODO: test for other devices
 		// TODO: handle orientation change in preferences screen
 
 		super.onCreate(savedInstanceState);
