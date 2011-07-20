@@ -10,8 +10,6 @@ import android.preference.Preference;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.json.JSONArray;
@@ -147,6 +145,8 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 			} catch (JSONException e) {
 				Log.e(debugTag, "Unable to find key " + quality + " in JSON Object: " + e.toString());
 			}
+			
+			populateQualities();
 		}
 		qualityListPreference.setSummary(qualitySummary);
 		qualityListPreference.setEnabled(connected);
@@ -155,7 +155,7 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 		editor.commit();
 	}
 
-	public static JSONObject getQualities(String responseText)
+	public void setQualities(String responseText)
 	{
 		JSONObject jsonObject = new JSONObject();
 		try {
@@ -167,7 +167,31 @@ public class PreferencesActivity extends PreferenceActivity implements OnSharedP
 		} catch (Exception e) {
 			// do nothing
 		}
+		
+		settingQualities = jsonObject;
+		
+		populateQualities();
+	}
+	
+	private void populateQualities()
+	{
+		// TODO: add support for quality choosing when adding movie
+		String[] entryNames = {"Unable to retrieve qualities"};
+		String[] entryValues = {"0"};
+		try {
+			JSONArray qualityKeys = settingQualities.names();
 
-		return jsonObject;
+			entryNames = new String[qualityKeys.length()];
+			entryValues = new String[qualityKeys.length()];
+
+			for (int i = 0; i < qualityKeys.length(); i++) {
+				entryNames[i] = settingQualities.getString(qualityKeys.getString(i));
+				entryValues[i] = qualityKeys.getString(i);
+			}
+		} catch (Exception e) {
+			// do nothing
+		}
+		qualityListPreference.setEntries(entryNames);
+		qualityListPreference.setEntryValues(entryValues);
 	}
 }

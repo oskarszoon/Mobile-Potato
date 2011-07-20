@@ -15,10 +15,14 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
 import com.google.android.apps.analytics.GoogleAnalyticsTracker;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  *
@@ -34,6 +38,7 @@ public class AddMovieActivity extends Activity {
 	private Boolean settingUseHTTPS = false;
 	private Boolean settingConnected = false;
 	private String settingQuality = "";
+	private SharedPreferences sharedPreferences;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -47,29 +52,29 @@ public class AddMovieActivity extends Activity {
 
 		// if this is from the share menu
 		if (Intent.ACTION_SEND.equals(action)) {
-			SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-			settingHost = sp.getString("Host", MainActivity.defaultHost);
-			settingPort = sp.getString("Port", MainActivity.defaultPort);
-			settingUsername = sp.getString("Username", MainActivity.defaultUsername);
-			settingPassword = sp.getString("Password", MainActivity.defaultPassword);
-			settingUseHTTPS = sp.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
-			settingQuality = sp.getString("Quality", "");
-			settingConnected = sp.getBoolean("Connected", false);
+			sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+			settingHost = sharedPreferences.getString("Host", MainActivity.defaultHost);
+			settingPort = sharedPreferences.getString("Port", MainActivity.defaultPort);
+			settingUsername = sharedPreferences.getString("Username", MainActivity.defaultUsername);
+			settingPassword = sharedPreferences.getString("Password", MainActivity.defaultPassword);
+			settingUseHTTPS = sharedPreferences.getBoolean("UseHTTPS", MainActivity.defaultUseHTTPS);
+			settingQuality = sharedPreferences.getString("Quality", "");
+			settingConnected = sharedPreferences.getBoolean("Connected", false);
 			
+			String fullText = (String) extras.get(Intent.EXTRA_TEXT);
+			Log.d(debugTag, fullText);
+			String[] IMDbDetails = getIMDbDetails(fullText);
 			if (settingConnected) {
-				String fullText = (String) extras.get(Intent.EXTRA_TEXT);
-				Log.d(debugTag, fullText);
-				String[] IMDbDetails = getIMDbDetails(fullText);
-
 				AddMovieToCPTask task = new AddMovieToCPTask(this);
 				task.execute(IMDbDetails);
 			} else {
-				Toast toast = Toast.makeText(this, "Unable to add movie: not connected to CouchPotato", Toast.LENGTH_LONG);
-				toast.setGravity(Gravity.CENTER, 0, 0);
-				toast.show();
+				AddMovieToQueue(IMDbDetails);
+				// TODO: title
+				showMessage("Offline: added movie to queue");
 				finish();
 			}
 		}
+		finish();
 	}
 
 	public String[] getIMDbDetails(String fullText)
@@ -85,6 +90,39 @@ public class AddMovieActivity extends Activity {
 		}
 
 		return IMDbDetails;
+	}
+	
+	private void showMessage(String message)
+	{
+		Toast toast = Toast.makeText(AddMovieActivity.this, message, Toast.LENGTH_LONG);
+		toast.setGravity(Gravity.CENTER, 0, 0);
+		toast.show();
+	}
+	
+	private void AddMovieToQueue(String[] IMDbDetails)
+	{
+		SharedPreferences.Editor editor = this.sharedPreferences.edit();
+		
+		JSONObject queue;
+		try {
+			queue = new JSONObject(this.sharedPreferences.getString("Queue", ""));
+		} catch (JSONException e) {
+			queue = new JSONObject();
+		}
+		try {
+			queue.put(IMDbDetails[1], IMDbDetails[0]);
+		} catch (JSONException e) {
+			Log.e(debugTag, "Could not add movie to queue: " + e.toString());
+		}
+		
+		if (settingConnected) {
+			// We are connected, but the movie was queued, so something went wrong, lets go offline
+			editor.putBoolean("Connected", false);
+			settingConnected = false;
+		}
+		
+		editor.putString("Queue", queue.toString());
+		editor.commit();
 	}
 
 	private class AddMovieToCPTask extends AsyncTask<String, Void, String> {
@@ -110,7 +148,7 @@ public class AddMovieActivity extends Activity {
 		{
 			Log.i(debugTag, "Doing background add for " + IMDbDetails[0]);
 
-			String jobResponse = "Unable to add movie: unable to connect to CouchPotato";
+			String jobResponse = "";
 
 			if (IMDbDetails[0].length() > 0 && IMDbDetails[1].length() > 0) {
 				DefaultHttpClient httpClient = new DefaultHttpClient();
@@ -123,12 +161,14 @@ public class AddMovieActivity extends Activity {
 					//String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
 
 					if (responseCode == 200) {
-						// TODO: group analytics calls
-						GoogleAnalyticsTracker tracker = GoogleAnalyticsTracker.getInstance();
-						tracker.start("UA-24637776-1", getApplication());
-						tracker.trackPageView("/AddMovie/" + IMDbDetails[0]);
-						tracker.dispatch();
-						tracker.stop();
+						if (MainActivity.trackAnalytics) {
+							// TODO: group analytics calls
+							GoogleAnalyticsTracker tracker = GoogleAnalyticsTracker.getInstance();
+							tracker.start("UA-24637776-1", getApplication());
+							tracker.trackPageView("/AddMovie/" + IMDbDetails[0]);
+							tracker.dispatch();
+							tracker.stop();
+						}
 						jobResponse = "Added " + IMDbDetails[0] + " to CouchPotato";
 					} else {
 						Log.e(debugTag, "responseCode: " + responseCode);
@@ -139,11 +179,19 @@ public class AddMovieActivity extends Activity {
 					httpClient.getConnectionManager().shutdown();
 					Log.e(debugTag, "Exception: " + e.toString());
 				}
+				
+				if (jobResponse.equals("")) {
+					// TODO: test if you lose connection to CP
+					AddMovieToQueue(IMDbDetails);
+					// TODO: title
+					showMessage("Unable to connect to CouchPotato, movie was added to offline queue");
+				}
 			} else {
+				showMessage("Could not add movie, did not receive the IMDb information");
 				Log.e(debugTag, "IMDbDetails[0] = " + IMDbDetails[0]);
 				Log.e(debugTag, "IMDbDetails[1] = " + IMDbDetails[1]);
 			}
-
+			
 			return jobResponse;
 		}
 
@@ -153,10 +201,10 @@ public class AddMovieActivity extends Activity {
 			if (this.dialog.isShowing()) {
 				this.dialog.dismiss();
 			}
+			if (!result.equals("")) {
+				showMessage(result);
+			}
 			activity.finish();
-			Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_LONG);
-			toast.setGravity(Gravity.CENTER, 0, 0);
-			toast.show();
 		}
 	}
 }

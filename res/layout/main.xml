@@ -1,31 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-android:layout_width="fill_parent"
-android:layout_height="fill_parent"
-android:orientation="vertical"
-xmlns:android="http://schemas.android.com/apk/res/android"
->
-<ImageView
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:layout_marginTop="10px"
-android:layout_marginBottom="20px"
-android:src="@drawable/couch"
-android:layout_gravity="center_horizontal"
->
-</ImageView>
-<EditText
-android:id="@+id/search_input"
-android:layout_width="fill_parent"
-android:layout_height="wrap_content"
-android:hint="@string/explanation"
->
-</EditText>
-<TextView
-android:layout_width="fill_parent"
-android:layout_height="wrap_content"
-android:text="@string/imdb_note"
-android:textSize="12sp"
->
-</TextView>
-</LinearLayout>
+<RelativeLayout
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical"
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	>
+	<LinearLayout
+		android:id="@+id/main_layout"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="10"
+		android:orientation="vertical"
+		>
+		<ImageView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="10px"
+			android:layout_marginBottom="20px"
+			android:src="@drawable/couch"
+			android:layout_gravity="center_horizontal"
+			/>
+		<EditText
+			android:id="@+id/search_input"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:hint="@string/explanation"
+			/>
+		<TextView
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/imdb_note"
+			android:textSize="12sp"
+			/>
+		<ListView
+			android:id="@+id/queue_action"
+			android:layout_width="fill_parent" 
+			android:layout_height="wrap_content"
+			android:visibility="gone"
+			/>
+	</LinearLayout>
+	<LinearLayout
+		android:id="@+id/main_ad"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="0"
+		android:gravity="bottom"
+		android:layout_alignParentBottom="true"
+		android:layout_alignBottom="@+id/main_layout"
+		/>
+</RelativeLayout>

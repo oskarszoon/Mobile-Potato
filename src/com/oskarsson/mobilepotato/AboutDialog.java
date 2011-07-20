@@ -21,7 +21,7 @@ public class AboutDialog {
 		PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_META_DATA);
 
 		String aboutTitle = String.format("About %s", context.getString(R.string.app_name));
-		String versionString = String.format("Version: %s", pInfo.versionName);
+		//String versionString = String.format("Version: %s", pInfo.versionName);
 		String aboutText = context.getString(R.string.about);
 
 		// Set up the TextView
@@ -32,11 +32,13 @@ public class AboutDialog {
 		// Set some padding
 		message.setPadding(5, 5, 5, 5);
 		// Set up the final string
-		message.setText(versionString + "\n\n" + s);
+		//message.setText(versionString + "\n\n" + s);
+		message.setText(s);
 		// Now linkify the text
 		Linkify.addLinks(message, Linkify.ALL);
 
-		return new AlertDialog.Builder(context).setTitle(aboutTitle).setCancelable(true).setIcon(R.drawable.icon).setPositiveButton(
+		//.setIcon(R.drawable.icon) icon is not showing up :(
+		return new AlertDialog.Builder(context).setTitle(aboutTitle).setCancelable(true).setPositiveButton(
 						context.getString(android.R.string.ok), null).setView(message).create();
 	}
 }

@@ -10,7 +10,6 @@ import android.view.Gravity;
 import android.widget.Toast;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONArray;
 
 public class GetQualitiesTask extends AsyncTask<Void, Void, String> {
 
@@ -42,8 +41,8 @@ public class GetQualitiesTask extends AsyncTask<Void, Void, String> {
 								httpClient);
 				responseCode = HTTPClientHelpers.getResponseCode(httpResponse);
 				String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
-
-				activity.settingQualities = PreferencesActivity.getQualities(responseText);
+				
+				activity.setQualities(responseText);
 				httpClient.getConnectionManager().shutdown();
 			} catch (Exception e) {
 				httpClient.getConnectionManager().shutdown();
@@ -62,24 +61,6 @@ public class GetQualitiesTask extends AsyncTask<Void, Void, String> {
 		String responseText = "";
 		if (responseCode.equals("200")) {
 			responseText = "Connected to CouchPotato";
-
-			String[] entryNames = {"Choose when adding"};
-			String[] entryValues = {"0"};
-			try {
-				JSONArray qualityKeys = activity.settingQualities.names();
-
-				entryNames = new String[qualityKeys.length()];
-				entryValues = new String[qualityKeys.length()];
-
-				for (int i = 0; i < qualityKeys.length(); i++) {
-					entryNames[i] = activity.settingQualities.getString(qualityKeys.getString(i));
-					entryValues[i] = qualityKeys.getString(i);
-				}
-			} catch (Exception e) {
-				// do nothing
-			}
-			activity.qualityListPreference.setEntries(entryNames);
-			activity.qualityListPreference.setEntryValues(entryValues);
 			activity.setConnected(true);
 		} else {
 			if (responseCode.equals("401")) {

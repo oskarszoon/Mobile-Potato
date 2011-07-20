@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.net.Uri;
@@ -17,53 +16,65 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import com.google.ads.AdRequest;
+import com.google.ads.AdSize;
+import com.google.ads.AdView;
 import com.google.android.apps.analytics.GoogleAnalyticsTracker;
-import java.util.HashMap;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-public class MainActivity extends Activity implements OnSharedPreferenceChangeListener {
+public class MainActivity extends Activity {
 
 	private String debugTag = "MP_Main";
-	private String settingHost = "";
-	private String settingPort = "";
-	private String settingUsername = "";
-	private String settingPassword = "";
-	private Boolean settingUseHTTPS = false;
 	public static String defaultHost = "";
 	public static String defaultPort = "";
 	public static Boolean defaultUseHTTPS = false;
 	public static String defaultUsername = "";
 	public static String defaultPassword = "";
-	public static HashMap settingQualities;
 	GoogleAnalyticsTracker tracker;
+	private AdView adView;
+	// TODO: enable tracking before releasing to market
+	public static Boolean trackAnalytics = false;
+	// TODO: ad moves in screen when starting keyboard, disabled until that is fixed
+	public static Boolean showAds = false;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		// TODO: handle orientation change in preferences screen
-
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
 		// TODO: better google analytics tracking, see http://code.google.com/mobile/analytics/docs/android/ (UA-24637776-1)
-		tracker = GoogleAnalyticsTracker.getInstance();
-		tracker.start("UA-24637776-1", getApplication());
-		tracker.trackPageView("/Main");
-		tracker.dispatch();
-		// Try to load the a package matching the name of our own package
-		//PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), PackageManager.GET_META_DATA);
-		//tracker.setCustomVar(1, "Version", pInfo.versionName, 2);
+		if (trackAnalytics) {
+			tracker = GoogleAnalyticsTracker.getInstance();
+			tracker.start("UA-24637776-1", getApplication());
+			tracker.trackPageView("/Main");
+			tracker.dispatch();
+			// Try to load the a package matching the name of our own package
+			//PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), PackageManager.GET_META_DATA);
+			//tracker.setCustomVar(1, "Version", pInfo.versionName, 2);
+		}
 
-		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-		sp.registerOnSharedPreferenceChangeListener(this);
+		if (showAds) {
+			adView = new AdView(this, AdSize.BANNER, "a14e273f3a516b4");
+			LinearLayout layout = (LinearLayout) findViewById(R.id.main_ad);
+			layout.addView(adView);
+			adView.loadAd(new AdRequest());
+		}
 
-		settingHost = sp.getString("Host", defaultHost);
-		settingPort = sp.getString("Port", defaultPort);
-		settingUsername = sp.getString("Username", defaultUsername);
-		settingPassword = sp.getString("Password", defaultPassword);
-		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
+		checkForIMDbApp();
+		setQueueActions();
+	}
 
+	private void checkForIMDbApp()
+	{
 		final EditText searchInput = (EditText) findViewById(R.id.search_input);
 		try {
 			// Check for IMDb existance
@@ -90,9 +101,39 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 			searchInput.setEnabled(false);
 		}
 	}
-	
+
+	private void setQueueActions()
+	{
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+		String queueString = sharedPreferences.getString("Queue", "");
+
+		ListView lv = (ListView) findViewById(R.id.queue_action);
+		if (!queueString.equals("")) {
+			JSONObject queue;
+			try {
+				queue = new JSONObject(queueString);
+			} catch (JSONException e) {
+				queue = new JSONObject();
+			}
+
+			if (queue.length() > 0) {
+				lv.setVisibility(0);
+				String[] myList = new String[]{"Movies in offline queue: " + queue.length()};
+				lv.setAdapter(new ArrayAdapter<String>(this, R.layout.list_item, myList));
+
+				lv.setOnItemClickListener(new OnItemClickListener() {
+
+					public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+					{
+						startActivity(new Intent(view.getContext(), QueueActivity.class));
+					}
+				});
+			}
+		}
+	}
 	private static final int MENU_SETTINGS = 1;
 	private static final int MENU_ABOUT = 2;
+	private static final int MENU_QUEUE = 3;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -121,16 +162,6 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 	{
 		// Ignore orientation change to keep activity from restarting
 		super.onConfigurationChanged(newConfig);
-	}
-
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
-	{
-		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-		settingHost = sp.getString("Host", defaultHost);
-		settingPort = sp.getString("Port", defaultPort);
-		settingUsername = sp.getString("Username", defaultUsername);
-		settingPassword = sp.getString("Password", defaultPassword);
-		settingUseHTTPS = sp.getBoolean("UseHTTPS", defaultUseHTTPS);
 	}
 	static final int DIALOG_ABOUT = 1;
 
@@ -162,9 +193,22 @@ public class MainActivity extends Activity implements OnSharedPreferenceChangeLi
 	}
 
 	@Override
+	protected void onResume()
+	{
+		super.onResume();
+		checkForIMDbApp();
+		setQueueActions();
+	}
+
+	@Override
 	protected void onDestroy()
 	{
 		super.onDestroy();
-		tracker.stop();
+		if (trackAnalytics) {
+			tracker.stop();
+		}
+		if (showAds) {
+			adView.destroy();
+		}
 	}
 }
