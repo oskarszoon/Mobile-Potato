@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.oskarsson.mobilepotato"
-	android:versionCode="1"
-	android:versionName="0.1"
+	android:versionCode="4"
+	android:versionName="0.6b"
 	>
 	<uses-sdk android:minSdkVersion="7" />
 	<uses-permission android:name="android.permission.INTERNET" /> 
@@ -28,7 +28,7 @@
 		<activity
 			android:name=".QueueActivity"
 			android:label="Queue"
-			android:theme="@android:style/Theme.Dialog"
+			android:theme="@style/Theme.Dialog"
 			android:configChanges="orientation|keyboardHidden"
 			>
 		</activity>

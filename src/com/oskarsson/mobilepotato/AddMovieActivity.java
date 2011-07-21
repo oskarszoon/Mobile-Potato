@@ -15,8 +15,6 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
 import com.google.android.apps.analytics.GoogleAnalyticsTracker;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.HttpResponse;
@@ -69,12 +67,12 @@ public class AddMovieActivity extends Activity {
 				task.execute(IMDbDetails);
 			} else {
 				AddMovieToQueue(IMDbDetails);
-				// TODO: title
-				showMessage("Offline: added movie to queue");
+				showMessage("Offline: added " +  IMDbDetails[0] + " to queue");
 				finish();
 			}
+		} else {
+			finish();
 		}
-		finish();
 	}
 
 	public String[] getIMDbDetails(String fullText)
@@ -151,40 +149,22 @@ public class AddMovieActivity extends Activity {
 			String jobResponse = "";
 
 			if (IMDbDetails[0].length() > 0 && IMDbDetails[1].length() > 0) {
-				DefaultHttpClient httpClient = new DefaultHttpClient();
-
-				try {
-					//http://192.168.0.113:8083/movie/imdbAdd/?id=tt0068646&add=Add&quality=12
-					String path = "/movie/imdbAdd/?id=" + IMDbDetails[1] + "&add=Add&quality=" + settingQuality;
-					HttpResponse httpResponse = HTTPClientHelpers.getResponse(settingHost, Integer.parseInt(settingPort), path, settingUseHTTPS, settingUsername, settingPassword, httpClient);
-					int responseCode = HTTPClientHelpers.getResponseCode(httpResponse);
-					//String responseText = HTTPClientHelpers.getResponseContent(httpResponse);
-
-					if (responseCode == 200) {
-						if (MainActivity.trackAnalytics) {
-							// TODO: group analytics calls
-							GoogleAnalyticsTracker tracker = GoogleAnalyticsTracker.getInstance();
-							tracker.start("UA-24637776-1", getApplication());
-							tracker.trackPageView("/AddMovie/" + IMDbDetails[0]);
-							tracker.dispatch();
-							tracker.stop();
-						}
-						jobResponse = "Added " + IMDbDetails[0] + " to CouchPotato";
-					} else {
-						Log.e(debugTag, "responseCode: " + responseCode);
-					}
-
-					httpClient.getConnectionManager().shutdown();
-				} catch (Exception e) {
-					httpClient.getConnectionManager().shutdown();
-					Log.e(debugTag, "Exception: " + e.toString());
-				}
 				
-				if (jobResponse.equals("")) {
-					// TODO: test if you lose connection to CP
+				int responseCode = Helpers.addMovieToCP(sharedPreferences, IMDbDetails[1]);
+				if (responseCode == 200) {
+					if (MainActivity.trackAnalytics) {
+						// TODO: group analytics calls
+						GoogleAnalyticsTracker tracker = GoogleAnalyticsTracker.getInstance();
+						tracker.start("UA-24637776-1", getApplication());
+						tracker.trackPageView("/AddMovie/" + IMDbDetails[0]);
+						tracker.dispatch();
+						tracker.stop();
+					}
+					jobResponse = "Added " + IMDbDetails[0] + " to CouchPotato";
+				} else {
+					Log.e(debugTag, "responseCode: " + responseCode);
 					AddMovieToQueue(IMDbDetails);
-					// TODO: title
-					showMessage("Unable to connect to CouchPotato, movie was added to offline queue");
+					jobResponse = "Unable to connect to CouchPotato, added " + IMDbDetails[0] + " to offline queue";
 				}
 			} else {
 				showMessage("Could not add movie, did not receive the IMDb information");

@@ -40,9 +40,8 @@ public class MainActivity extends Activity {
 	GoogleAnalyticsTracker tracker;
 	private AdView adView;
 	// TODO: enable tracking before releasing to market
-	public static Boolean trackAnalytics = false;
-	// TODO: ad moves in screen when starting keyboard, disabled until that is fixed
-	public static Boolean showAds = false;
+	public static Boolean trackAnalytics = true;
+	public static Boolean showAds = true;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -57,9 +56,6 @@ public class MainActivity extends Activity {
 			tracker.start("UA-24637776-1", getApplication());
 			tracker.trackPageView("/Main");
 			tracker.dispatch();
-			// Try to load the a package matching the name of our own package
-			//PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), PackageManager.GET_META_DATA);
-			//tracker.setCustomVar(1, "Version", pInfo.versionName, 2);
 		}
 
 		if (showAds) {
@@ -69,8 +65,9 @@ public class MainActivity extends Activity {
 			adView.loadAd(new AdRequest());
 		}
 
-		checkForIMDbApp();
-		setQueueActions();
+		// don in onReusme?
+		//checkForIMDbApp();
+		//setQueueActions();
 	}
 
 	private void checkForIMDbApp()
@@ -107,6 +104,7 @@ public class MainActivity extends Activity {
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 		String queueString = sharedPreferences.getString("Queue", "");
 
+		Boolean queueFilled = false;
 		ListView lv = (ListView) findViewById(R.id.queue_action);
 		if (!queueString.equals("")) {
 			JSONObject queue;
@@ -117,9 +115,10 @@ public class MainActivity extends Activity {
 			}
 
 			if (queue.length() > 0) {
-				lv.setVisibility(0);
+				queueFilled = true;
+				lv.setVisibility(View.VISIBLE);
 				String[] myList = new String[]{"Movies in offline queue: " + queue.length()};
-				lv.setAdapter(new ArrayAdapter<String>(this, R.layout.list_item, myList));
+				lv.setAdapter(new ArrayAdapter<String>(this, R.layout.main_list_item, myList));
 
 				lv.setOnItemClickListener(new OnItemClickListener() {
 
@@ -130,10 +129,13 @@ public class MainActivity extends Activity {
 				});
 			}
 		}
+		
+		if (!queueFilled) {
+			lv.setVisibility(View.GONE);
+		}
 	}
 	private static final int MENU_SETTINGS = 1;
 	private static final int MENU_ABOUT = 2;
-	private static final int MENU_QUEUE = 3;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
